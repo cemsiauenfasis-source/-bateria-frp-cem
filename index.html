@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Batería FRP · Calificación Automatizada</title>
+<style>
+  :root{
+    --ink:#182524;
+    --paper:#f3f6f4;
+    --paper2:#eef3f0;
+    --card:#ffffff;
+    --line:#dfe6e1;
+    --teal:#0f8c7e;
+    --teal-light:#14b8a0;
+    --teal-dark:#0b4f47;
+    --violet:#6d5bd0;
+    --clay:#e2622f;
+    --gold:#e0a52e;
+    --sin:#1fa678;
+    --bajo:#7fb238;
+    --medio:#e0a52e;
+    --alto:#e2792f;
+    --muyalto:#dd3b3b;
+    --dom1:#0f8c7e;
+    --dom2:#6d5bd0;
+    --dom3:#e2622f;
+    --dom4:#c9922f;
+    --shadow-sm:0 1px 2px rgba(15,50,45,.06), 0 1px 1px rgba(15,50,45,.04);
+    --shadow-md:0 6px 18px -6px rgba(15,50,45,.18), 0 2px 6px -2px rgba(15,50,45,.08);
+    --shadow-lg:0 20px 40px -14px rgba(15,50,45,.28);
+    --mono: "IBM Plex Mono","SFMono-Regular",Consolas,monospace;
+    --serif: "Source Serif 4","Georgia",serif;
+    --sans: "Inter","Helvetica Neue",Arial,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(1100px 520px at 12% -8%, rgba(15,140,126,.10), transparent 60%),
+      radial-gradient(900px 480px at 100% 0%, rgba(109,91,208,.08), transparent 55%),
+      var(--paper);
+    color:var(--ink);
+    font-family:var(--sans);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  ::selection{background:var(--gold);color:#182524;}
+
+  /* ---------- Fondo dinámico (temática de psicología / mente) ---------- */
+  .bg-decor{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
+  #shell, header.top{position:relative;z-index:1;}
+
+  .bg-blob{position:absolute;border-radius:50%;filter:blur(70px);animation:bg-float ease-in-out infinite;}
+  .bg-blob-1{width:460px;height:460px;background:radial-gradient(circle,var(--teal-light),transparent 72%);opacity:.32;top:-140px;left:-120px;animation-duration:26s;}
+  .bg-blob-2{width:400px;height:400px;background:radial-gradient(circle,var(--violet),transparent 72%);opacity:.22;bottom:-150px;right:-90px;animation-duration:32s;animation-delay:-8s;}
+  .bg-blob-3{width:320px;height:320px;background:radial-gradient(circle,var(--gold),transparent 72%);opacity:.18;top:38%;right:6%;animation-duration:24s;animation-delay:-14s;}
+  @keyframes bg-float{
+    0%,100%{transform:translate(0,0) scale(1);}
+    50%{transform:translate(36px,-46px) scale(1.09);}
+  }
+
+  .bg-neural{position:absolute;inset:0;width:100%;height:100%;opacity:.15;}
+  .bg-neural-lines line{stroke:var(--teal);stroke-width:1;opacity:.35;}
+  .bg-neural-nodes circle{animation:bg-pulse ease-in-out infinite;transform-origin:center;transform-box:fill-box;}
+  @keyframes bg-pulse{
+    0%,100%{opacity:.3;transform:scale(1);}
+    50%{opacity:1;transform:scale(1.6);}
+  }
+
+  .bg-mind{position:absolute;width:340px;height:340px;bottom:-30px;right:-40px;opacity:.05;fill:none;stroke:var(--teal-dark);}
+  .bg-mind path:first-child{fill:var(--teal-dark);stroke:none;}
+  .bg-mind-fold{stroke:var(--paper);stroke-width:2.5;stroke-linecap:round;}
+
+  .bg-logo-watermark{
+    position:absolute;top:50%;left:50%;
+    width:min(70vw,900px);height:auto;
+    transform:translate(-50%,-50%);
+    opacity:.07;filter:blur(2px);
+    pointer-events:none;
+  }
+
+  @media(max-width:700px){.bg-mind{width:220px;height:220px;} .bg-blob{filter:blur(50px);} .bg-logo-watermark{width:88vw;}}
+  @media print{.bg-decor{display:none !important;}}
+
+  a{color:var(--teal);}
+
+  /* ---------- Shell ---------- */
+  #shell{max-width:920px;margin:0 auto;padding:0 20px 80px;}
+
+  header.top{
+    position:sticky;top:0;z-index:30;
+    background:linear-gradient(115deg,#12335e 0%,#1c4f8c 100%);
+    padding:16px 0 0;
+    box-shadow:0 4px 16px -6px rgba(10,30,55,.45);
+  }
+  .navy-inner{max-width:920px;margin:0 auto;padding:0 20px;}
+  .brandrow{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+  .brand{display:flex;align-items:center;gap:14px;}
+  .logo-badge{
+    display:flex;align-items:center;gap:9px;background:#fff;border-radius:9px;
+    padding:7px 13px;box-shadow:var(--shadow-sm);flex:none;
+  }
+  .logo-badge svg{width:26px;height:26px;flex:none;}
+  .logo-badge .logo-txt{line-height:1.15;}
+  .logo-badge .logo-cem{font-family:var(--mono);font-weight:800;font-size:12.5px;color:var(--teal-dark);letter-spacing:.02em;}
+  .logo-badge .logo-sub{font-family:var(--sans);font-size:8.7px;color:#5c6763;letter-spacing:.01em;white-space:nowrap;}
+  .logo-badge .logo-img{height:30px;width:auto;display:block;flex:none;}
+  .brand h1{font-family:var(--serif);font-size:19px;font-weight:700;margin:0;letter-spacing:-.01em;color:#fff;}
+  .brand .sub{font-family:var(--mono);font-size:10.5px;letter-spacing:.06em;text-transform:uppercase;color:#bcd3ea;font-weight:600;margin-top:2px;}
+
+  nav.steps{display:flex;gap:2px;margin-top:16px;overflow-x:auto;}
+  nav.steps button{
+    appearance:none;border:none;background:none;cursor:pointer;
+    font-family:var(--mono);font-size:11px;letter-spacing:.03em;
+    color:rgba(255,255,255,.55);padding:8px 14px 11px;white-space:nowrap;position:relative;
+    border-bottom:2.5px solid transparent;transition:color .18s, border-color .18s;
+  }
+  nav.steps button .n{
+    display:inline-flex;align-items:center;justify-content:center;
+    width:18px;height:18px;border-radius:50%;background:rgba(255,255,255,.16);color:#fff;
+    font-size:9.5px;margin-right:7px;transition:background .18s,color .18s;
+  }
+  nav.steps button.active{color:#fff;border-bottom-color:var(--gold);font-weight:700;}
+  nav.steps button.active .n{background:var(--gold);color:#12335e;}
+  nav.steps button.done{color:#dcecff;}
+  nav.steps button.done .n{background:var(--teal-light);color:#fff;}
+  nav.steps button:hover:not(:disabled):not(.active){color:#fff;}
+  nav.steps button:disabled{opacity:.35;cursor:not-allowed;}
+  header.top .btn.ghost{border-color:rgba(255,255,255,.5);color:#fff;}
+  header.top .btn.ghost:hover{background:rgba(255,255,255,.14);}
+
+  main{padding-top:26px;}
+  section.panel{display:none;}
+  section.panel.active{display:block;animation:fade .3s cubic-bezier(.2,.7,.3,1);}
+  @keyframes fade{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+  @keyframes popIn{from{opacity:0;transform:scale(.94);}to{opacity:1;transform:scale(1);}}
+
+  h2.pantitle{font-family:var(--serif);font-size:27px;margin:0 0 4px;letter-spacing:-.01em;color:var(--teal-dark);}
+  p.pandesc{color:#5c6763;font-size:14.5px;margin:0 0 28px;max-width:60ch;}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:12px;
+    padding:22px 24px;margin-bottom:16px;box-shadow:var(--shadow-sm);
+    transition:box-shadow .2s ease;
+  }
+
+  /* ---------- Ficha de datos ---------- */
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+  @media(max-width:600px){.grid2{grid-template-columns:1fr;}}
+  label.field{display:block;font-size:12.5px;margin-bottom:14px;}
+  label.field span.lbl{display:block;font-family:var(--mono);font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;color:#7a735f;margin-bottom:6px;}
+  label.field input, label.field select{
+    width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;
+    font-family:var(--sans);font-size:14px;background:var(--paper2);color:var(--ink);
+    transition:border-color .15s, background .15s, box-shadow .15s;
+  }
+  label.field input:hover, label.field select:hover{border-color:#b9c9c2;}
+  label.field input:focus, label.field select:focus{
+    outline:none;border-color:var(--teal);background:#fff;
+    box-shadow:0 0 0 3px rgba(15,140,126,.15);
+  }
+
+  /* ---------- Item questions ---------- */
+  .domain-heading{
+    font-family:var(--mono);font-size:11px;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--clay);margin:30px 0 4px;
+  }
+  .domain-heading:first-child{margin-top:0;}
+  .item-row{
+    background:var(--card);
+    border:1px solid var(--line);
+    border-left:4px solid var(--dom-color, var(--line));
+    border-radius:10px;
+    padding:16px 18px;
+    margin-bottom:10px;
+    display:grid;grid-template-columns:1fr;gap:12px;
+    box-shadow:var(--shadow-sm);
+    transition:box-shadow .18s ease, transform .18s ease, border-color .18s ease;
+    animation:fade .35s cubic-bezier(.2,.7,.3,1) backwards;
+  }
+  .item-row:hover{box-shadow:var(--shadow-md);transform:translateY(-1px);}
+  .item-text{font-size:14.5px;line-height:1.45;}
+  .item-num{
+    font-family:var(--mono);color:#fff;background:var(--dom-color, #9aa8a3);
+    margin-right:9px;font-size:11.5px;font-weight:700;
+    display:inline-flex;align-items:center;justify-content:center;
+    min-width:24px;height:20px;border-radius:6px;padding:0 5px;vertical-align:middle;
+  }
+  .item-domain-tag{
+    font-family:var(--mono);font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;
+    color:var(--dom-color, #8a9490);font-weight:700;display:block;margin-bottom:6px;
+  }
+  .opts{display:flex;gap:6px;flex-wrap:wrap;}
+  .opt{
+    flex:1 1 auto;min-width:78px;text-align:center;
+    border:1.5px solid var(--line);border-radius:20px;padding:8px 6px;
+    font-size:11.5px;cursor:pointer;background:var(--paper2);color:#526059;font-weight:500;
+    transition:background .14s,border-color .14s,color .14s,transform .12s;
+    user-select:none;
+  }
+  .opt:hover{border-color:var(--dom-color, var(--teal));color:var(--ink);transform:translateY(-1px);}
+  .opt.sel{
+    background:var(--dom-color, var(--teal));border-color:var(--dom-color, var(--teal));
+    color:#fff;font-weight:700;box-shadow:var(--shadow-sm);
+    animation:popIn .18s ease;
+  }
+  .item-row.missing{border-color:var(--muyalto);border-left-color:var(--muyalto);}
+  .item-row.missing .item-text{color:var(--muyalto);}
+  .item-row.missing .opts{outline:1.5px solid var(--muyalto);border-radius:12px;outline-offset:3px;}
+
+  .progress-bar{position:sticky;top:112px;z-index:20;background:rgba(243,246,244,.9);backdrop-filter:blur(6px);padding:10px 0 14px;}
+  .progress-track{height:8px;background:var(--line);border-radius:6px;overflow:hidden;}
+  .progress-fill{
+    height:100%;border-radius:6px;
+    background:linear-gradient(90deg,var(--teal-light),var(--teal),var(--violet));
+    background-size:200% 100%;
+    box-shadow:0 0 10px rgba(15,140,126,.4);
+    transition:width .3s cubic-bezier(.2,.7,.3,1);
+  }
+  .progress-label{font-family:var(--mono);font-size:10.5px;color:#6b7975;margin-top:7px;letter-spacing:.03em;font-weight:600;}
+
+  .navbtns{display:flex;justify-content:space-between;margin-top:28px;gap:10px;}
+  button.btn{
+    appearance:none;border:1px solid var(--teal-dark);
+    background:linear-gradient(155deg,var(--teal-light),var(--teal-dark));
+    color:#f6f4ee;
+    font-family:var(--mono);font-size:12px;letter-spacing:.03em;text-transform:uppercase;font-weight:600;
+    padding:12px 22px;border-radius:9px;cursor:pointer;
+    transition:transform .15s ease, box-shadow .15s ease, opacity .15s;
+    box-shadow:var(--shadow-sm);
+  }
+  button.btn:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+  button.btn:active{transform:translateY(0);}
+  button.btn.ghost{background:transparent;color:var(--teal-dark);box-shadow:none;}
+  button.btn.ghost:hover{background:rgba(15,140,126,.08);}
+  button.btn:disabled{opacity:.35;cursor:not-allowed;transform:none;box-shadow:none;}
+
+  /* ---------- Results ---------- */
+  table.res{width:100%;border-collapse:collapse;margin:6px 0 22px;font-size:13px;border-radius:10px;overflow:hidden;box-shadow:var(--shadow-sm);}
+  table.res th{
+    text-align:left;font-family:var(--mono);font-size:10px;letter-spacing:.05em;text-transform:uppercase;
+    color:#fff;padding:9px 10px;background:var(--teal-dark);
+  }
+  table.res td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;background:var(--card);}
+  table.res tr:hover td{background:var(--paper2);}
+  table.res tr.domain-total td{font-weight:700;background:#e7f2ee;}
+  table.res tr.grand td{font-weight:700;background:linear-gradient(90deg,var(--teal-dark),var(--teal));color:#f6f4ee;}
+  .tag{
+    display:inline-flex;align-items:center;gap:5px;padding:4px 11px;border-radius:20px;font-family:var(--mono);
+    font-size:10.5px;letter-spacing:.03em;text-transform:uppercase;color:#fff;white-space:nowrap;font-weight:700;
+    box-shadow:0 1px 3px rgba(0,0,0,.12);
+  }
+  .tag::before{content:'';width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.85);}
+  .tag.SIN{background:var(--sin);}
+  .tag.BAJO{background:var(--bajo);}
+  .tag.MEDIO{background:var(--medio);color:#182524;}
+  .tag.MEDIO::before{background:rgba(24,37,36,.6);}
+  .tag.ALTO{background:var(--alto);}
+  .tag.MUY_ALTO{background:var(--muyalto);}
+
+  .res-block h3{font-family:var(--serif);font-size:19px;margin:34px 0 4px;color:var(--teal-dark);}
+  .res-block .rb-sub{color:#6b7975;font-size:12.5px;margin-bottom:14px;font-family:var(--mono);}
+
+  .summary-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:30px;}
+  @media(max-width:700px){.summary-cards{grid-template-columns:1fr;}}
+  .sumcard{
+    background:linear-gradient(160deg,#ffffff, var(--paper2));
+    border:1px solid var(--line);border-radius:12px;padding:18px;
+    box-shadow:var(--shadow-sm);position:relative;overflow:hidden;
+    transition:box-shadow .18s, transform .18s;
+  }
+  .sumcard:hover{box-shadow:var(--shadow-md);transform:translateY(-2px);}
+  .sumcard::before{
+    content:'';position:absolute;top:-30px;right:-30px;width:90px;height:90px;border-radius:50%;
+    background:radial-gradient(circle, rgba(15,140,126,.12), transparent 70%);
+  }
+  .sumcard .k{font-family:var(--mono);font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:#6b7975;font-weight:700;}
+  .sumcard .v{font-family:var(--serif);font-size:30px;margin:6px 0 8px;color:var(--teal-dark);}
+
+  .toolbar{display:flex;gap:10px;margin:26px 0;flex-wrap:wrap;}
+
+  footer.note{
+    font-size:11.5px;color:#6b7975;border-top:1px solid var(--line);
+    margin-top:40px;padding-top:16px;
+  }
+
+  @media print{
+    *{-webkit-print-color-adjust:exact !important;print-color-adjust:exact !important;color-adjust:exact !important;}
+    header.top,.toolbar,.progress-bar,nav.steps{display:none !important;}
+    body{background:#fff;}
+    #shell{display:none !important;}
+    section.panel{display:none !important;}
+    .card{border:1px solid #999;box-shadow:none !important;}
+    #admin-overlay{display:block !important;position:static !important;background:none !important;}
+    #admin-overlay>div{max-width:100%;margin:0;padding:0;box-shadow:none !important;}
+    #admin-login{display:none !important;}
+    #admin-list{display:none !important;}
+    #admin-overlay .btn{display:none !important;}
+
+    /* Color neutro (gris) para que las píldoras de nivel y opciones sean
+       siempre legibles al imprimir, sin depender de que el navegador
+       imprima fondos de color, y sin caer en un negro plano. */
+    .tag{
+      background:#eef0f2 !important;color:#3d4650 !important;
+      border:1.3px solid #6b7480 !important;box-shadow:none !important;font-weight:700;
+    }
+    .tag::before{background:#6b7480 !important;}
+    .opt{background:#f2f3f5 !important;border:1.3px solid #9aa2ab !important;color:#3d4650 !important;}
+    .opt.sel{background:#6b7480 !important;border-color:#6b7480 !important;color:#fff !important;}
+    .item-row{border-left-color:#8a9299 !important;box-shadow:none !important;}
+    .item-num{background:#6b7480 !important;color:#fff !important;}
+    .item-domain-tag{color:#6b7480 !important;}
+    table.res th{background:#3d4650 !important;color:#fff !important;}
+    table.res tr.domain-total td{background:#eef0f2 !important;}
+    table.res tr.grand td{background:#3d4650 !important;color:#fff !important;}
+    .sumcard{box-shadow:none !important;border:1px solid #999;}
+  }
+
+  /* ---------- Admin overlay ---------- */
+  #admin-overlay{display:none;position:fixed;inset:0;background:rgba(12,25,23,.65);backdrop-filter:blur(2px);z-index:100;overflow:auto;}
+  #admin-overlay .admin-box{max-width:920px;margin:34px auto;background:var(--paper);border:1px solid var(--line);border-radius:14px;padding:26px 28px 40px;position:relative;box-shadow:var(--shadow-lg);animation:popIn .2s ease;}
+  #admin-overlay .closebtn{position:absolute;top:16px;right:16px;}
+  #admin-list table.res td button{white-space:nowrap;}
+
+  /* ---------- Estadísticas de completitud (panel admin) ---------- */
+  .stat-block{margin-bottom:22px;}
+  .stat-head{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:6px;flex-wrap:wrap;}
+  .stat-head .stat-title{font-family:var(--mono);font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--teal-dark);font-weight:700;}
+  .stat-head .stat-pct{font-family:var(--serif);font-size:15px;font-weight:700;}
+  .stat-track{height:9px;background:var(--line);border-radius:6px;overflow:hidden;margin-bottom:8px;}
+  .stat-fill{height:100%;border-radius:6px;transition:width .3s ease;}
+  .stat-fill.ok{background:var(--sin);}
+  .stat-fill.warn{background:var(--gold);}
+  .stat-fill.bad{background:var(--muyalto);}
+  .stat-missing{font-size:12px;color:#5c6763;}
+  .stat-missing .chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px;}
+  .stat-missing .chip{
+    display:inline-flex;align-items:center;gap:5px;background:var(--paper2);border:1px solid var(--line);
+    border-radius:7px;padding:3px 8px;font-family:var(--mono);font-size:10.5px;color:var(--ink);
+  }
+  .stat-missing .chip b{color:var(--muyalto);}
+  .stat-complete-msg{font-size:12.5px;color:var(--sin);font-weight:600;}
+</style>
+</head>
+<body>
+<div class="bg-decor" aria-hidden="true">
+  <div class="bg-blob bg-blob-1"></div>
+  <div class="bg-blob bg-blob-2"></div>
+  <div class="bg-blob bg-blob-3"></div>
+  <svg class="bg-neural" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+    <g class="bg-neural-lines">
+      <line x1="518" y1="136" x2="725" y2="270" />
+          <line x1="1041" y1="65" x2="876" y2="57" />
+          <line x1="1041" y1="65" x2="1167" y2="259" />
+          <line x1="857" y1="329" x2="923" y2="357" />
+          <line x1="857" y1="329" x2="1022" y2="335" />
+          <line x1="857" y1="329" x2="725" y2="270" />
+          <line x1="93" y1="457" x2="60" y2="390" />
+          <line x1="93" y1="457" x2="289" y2="523" />
+          <line x1="93" y1="457" x2="243" y2="440" />
+          <line x1="93" y1="457" x2="63" y2="601" />
+          <line x1="60" y1="390" x2="95" y2="185" />
+          <line x1="60" y1="390" x2="243" y2="440" />
+          <line x1="60" y1="390" x2="63" y2="601" />
+          <line x1="112" y1="82" x2="198" y2="201" />
+          <line x1="112" y1="82" x2="231" y2="106" />
+          <line x1="112" y1="82" x2="95" y2="185" />
+          <line x1="679" y1="744" x2="494" y2="735" />
+          <line x1="679" y1="744" x2="840" y2="788" />
+          <line x1="679" y1="744" x2="669" y2="681" />
+          <line x1="198" y1="201" x2="231" y2="106" />
+          <line x1="198" y1="201" x2="95" y2="185" />
+          <line x1="1004" y1="853" x2="840" y2="788" />
+          <line x1="923" y1="357" x2="1022" y2="335" />
+          <line x1="923" y1="357" x2="1089" y2="385" />
+          <line x1="923" y1="357" x2="725" y2="270" />
+          <line x1="1562" y1="42" x2="1568" y2="106" />
+          <line x1="1374" y1="261" x2="1167" y2="259" />
+          <line x1="1374" y1="261" x2="1568" y2="106" />
+          <line x1="231" y1="106" x2="95" y2="185" />
+          <line x1="494" y1="735" x2="503" y2="527" />
+          <line x1="494" y1="735" x2="669" y2="681" />
+          <line x1="289" y1="523" x2="503" y2="527" />
+          <line x1="289" y1="523" x2="391" y2="517" />
+          <line x1="289" y1="523" x2="243" y2="440" />
+          <line x1="289" y1="523" x2="63" y2="601" />
+          <line x1="1022" y1="335" x2="1089" y2="385" />
+          <line x1="1022" y1="335" x2="1167" y2="259" />
+          <line x1="1089" y1="385" x2="1167" y2="259" />
+          <line x1="1089" y1="385" x2="1223" y2="516" />
+          <line x1="503" y1="527" x2="391" y2="517" />
+          <line x1="1271" y1="629" x2="1223" y2="516" />
+          <line x1="391" y1="517" x2="243" y2="440" />
+          <line x1="840" y1="788" x2="669" y2="681" />
+    </g>
+    <g class="bg-neural-nodes">
+      <circle cx="518" cy="136" r="4.0" fill="var(--teal-light)" style="animation-delay:1.57s;animation-duration:4.80s;" />
+          <circle cx="1041" cy="65" r="3.4" fill="var(--violet)" style="animation-delay:2.90s;animation-duration:4.25s;" />
+          <circle cx="857" cy="329" r="3.9" fill="var(--gold)" style="animation-delay:4.72s;animation-duration:4.29s;" />
+          <circle cx="93" cy="457" r="3.5" fill="var(--teal-light)" style="animation-delay:0.30s;animation-duration:4.81s;" />
+          <circle cx="60" cy="390" r="3.5" fill="var(--violet)" style="animation-delay:4.97s;animation-duration:5.09s;" />
+          <circle cx="112" cy="82" r="2.8" fill="var(--gold)" style="animation-delay:1.93s;animation-duration:4.74s;" />
+          <circle cx="679" cy="744" r="2.2" fill="var(--teal-light)" style="animation-delay:2.31s;animation-duration:3.59s;" />
+          <circle cx="198" cy="201" r="2.4" fill="var(--violet)" style="animation-delay:0.29s;animation-duration:4.97s;" />
+          <circle cx="1004" cy="853" r="2.5" fill="var(--gold)" style="animation-delay:1.24s;animation-duration:4.10s;" />
+          <circle cx="923" cy="357" r="3.9" fill="var(--teal-light)" style="animation-delay:0.40s;animation-duration:4.23s;" />
+          <circle cx="1562" cy="42" r="3.3" fill="var(--violet)" style="animation-delay:4.42s;animation-duration:5.08s;" />
+          <circle cx="1374" cy="261" r="3.9" fill="var(--gold)" style="animation-delay:1.39s;animation-duration:4.16s;" />
+          <circle cx="231" cy="106" r="2.9" fill="var(--teal-light)" style="animation-delay:4.42s;animation-duration:5.40s;" />
+          <circle cx="494" cy="735" r="2.5" fill="var(--violet)" style="animation-delay:0.88s;animation-duration:3.73s;" />
+          <circle cx="289" cy="523" r="2.7" fill="var(--gold)" style="animation-delay:2.42s;animation-duration:4.55s;" />
+          <circle cx="1022" cy="335" r="2.7" fill="var(--teal-light)" style="animation-delay:0.02s;animation-duration:4.16s;" />
+          <circle cx="876" cy="57" r="2.9" fill="var(--violet)" style="animation-delay:2.83s;animation-duration:5.39s;" />
+          <circle cx="95" cy="185" r="3.6" fill="var(--gold)" style="animation-delay:2.58s;animation-duration:4.62s;" />
+          <circle cx="1089" cy="385" r="3.6" fill="var(--teal-light)" style="animation-delay:0.27s;animation-duration:5.27s;" />
+          <circle cx="503" cy="527" r="3.8" fill="var(--violet)" style="animation-delay:4.37s;animation-duration:5.04s;" />
+          <circle cx="725" cy="270" r="3.0" fill="var(--gold)" style="animation-delay:1.99s;animation-duration:3.44s;" />
+          <circle cx="1271" cy="629" r="3.5" fill="var(--teal-light)" style="animation-delay:0.31s;animation-duration:3.35s;" />
+          <circle cx="391" cy="517" r="2.6" fill="var(--violet)" style="animation-delay:0.81s;animation-duration:3.98s;" />
+          <circle cx="840" cy="788" r="2.3" fill="var(--gold)" style="animation-delay:0.00s;animation-duration:3.55s;" />
+          <circle cx="1167" cy="259" r="2.4" fill="var(--teal-light)" style="animation-delay:1.82s;animation-duration:3.26s;" />
+          <circle cx="1568" cy="106" r="3.9" fill="var(--violet)" style="animation-delay:3.07s;animation-duration:3.54s;" />
+          <circle cx="669" cy="681" r="2.7" fill="var(--gold)" style="animation-delay:1.74s;animation-duration:4.04s;" />
+          <circle cx="243" cy="440" r="2.4" fill="var(--teal-light)" style="animation-delay:4.24s;animation-duration:5.48s;" />
+          <circle cx="63" cy="601" r="3.1" fill="var(--violet)" style="animation-delay:2.42s;animation-duration:3.40s;" />
+          <circle cx="1223" cy="516" r="2.4" fill="var(--gold)" style="animation-delay:1.71s;animation-duration:3.81s;" />
+    </g>
+  </svg>
+  <svg class="bg-mind" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <path d="M100 26c-9 0-16 5-20 12-11-1-21 6-24 17-8 3-13 11-13 20 0 7 3 13 8 17-3 5-4 11-2 17 3 9 12 15 21 15 2 6 7 11 13 13 2 8 9 14 18 14h6c9 0 16-6 18-14 6-2 11-7 13-13 9 0 18-6 21-15 2-6 1-12-2-17 5-4 8-10 8-17 0-9-5-17-13-20-3-11-13-18-24-17-4-7-11-12-20-12z" />
+    <path class="bg-mind-fold" d="M76 52c4 8 4 18-2 26M100 40v100M124 52c-4 8-4 18 2 26M60 88c8 4 18 4 24-4M140 88c-8 4-18 4-24-4M70 122c6 6 16 8 24 4M130 122c-6 6-16 8-24 4" />
+  </svg>
+  <img class="bg-logo-watermark" src="data:image/png;base64,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" alt="" />
+</div>
+<header class="top">
+  <div class="navy-inner">
+    <div class="brandrow">
+      <div class="brand">
+        <div class="logo-badge">
+          <img src="data:image/png;base64,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" alt="CRC Centro de Especialidades Médicas" class="logo-img"/>
+        </div>
+        <div>
+          <h1>Batería de Riesgo Psicosocial</h1>
+          <div class="sub">Calificación automatizada · Forma A / B · Resp. CEM</div>
+        </div>
+      </div>
+      <button class="btn ghost" style="font-size:10px;padding:7px 12px;" onclick="openAdmin()" title="Solo el administrador del cuestionario puede ver los puntajes">Acceso administrador</button>
+    </div>
+    <nav class="steps" id="stepnav"></nav>
+  </div>
+</header>
+<div id="shell">
+
+  <main>
+
+    <section class="panel" id="panel-ficha">
+      <h2 class="pantitle">Ficha de datos generales</h2>
+      <p class="pandesc">Estos datos identifican el reporte y determinan el baremo del cuestionario de estrés (varía según el nivel de cargo).</p>
+      <div class="card">
+        <div class="grid2">
+          <label class="field"><span class="lbl">Nombre completo</span><input type="text" id="f-nombre" placeholder="Nombre y apellidos"></label>
+          <label class="field"><span class="lbl">N.º de identificación</span><input type="text" id="f-cc" placeholder="Cédula / documento"></label>
+          <label class="field"><span class="lbl">Sexo</span>
+            <select id="f-sexo"><option value="">Seleccione…</option><option>Femenino</option><option>Masculino</option></select>
+          </label>
+          <label class="field"><span class="lbl">Cargo / ocupación</span><input type="text" id="f-cargo" placeholder="Ej. Coordinador médico"></label>
+          <label class="field"><span class="lbl">Empresa</span><input type="text" id="f-empresa" placeholder="Nombre de la empresa"></label>
+          <label class="field"><span class="lbl">Fecha de aplicación</span><input type="date" id="f-fecha"></label>
+          <label class="field" style="grid-column:1/-1;"><span class="lbl">Nivel de cargo (define si aplica Forma A o Forma B del intralaboral, y el baremo del cuestionario de estrés)</span>
+            <select id="f-nivel">
+              <option value="jefes">Jefatura / Dirección</option>
+              <option value="auxiliares">Profesional o técnico</option>
+              <option value="auxiliares">Auxiliar o asistente</option>
+              <option value="auxiliares">Operario / servicios generales</option>
+            </select>
+          </label>
+        </div>
+      </div>
+      <p style="font-size:12.5px;color:#6b6455;">Nota: este aplicativo reproduce el <strong>Cuestionario Intralaboral Forma A</strong> (jefatura / dirección), el <strong>Cuestionario Intralaboral Forma B</strong> (profesional, técnico, auxiliar, asistente, operario y cargos afines), el <strong>Cuestionario Extralaboral</strong> y el <strong>Cuestionario para la Evaluación del Estrés — 3.ª versión</strong>, siguiendo la Batería de Instrumentos para la Evaluación de Factores de Riesgo Psicosocial (Ministerio de la Protección Social / Pontificia Universidad Javeriana, 2010). Según el <strong>nivel de cargo</strong> seleccionado abajo, el sistema presenta automáticamente la Forma A o la Forma B. Para la Forma B, este aplicativo registra las 97 respuestas y su completitud; la calificación automática por dominios y dimensiones aún no está disponible aquí porque no se cuenta con la tabla oficial de asignación de ítems por dimensión ni con los baremos específicos de esa forma — la calificación debe realizarla el profesional responsable con el manual oficial.</p>
+      <div class="navbtns"><span></span><button class="btn" onclick="goTo(1)">Comenzar →</button></div>
+    </section>
+
+    <section class="panel" id="panel-intralaboral">
+      <h2 class="pantitle">Cuestionario Intralaboral — Forma A</h2>
+      <p class="pandesc">123 ítems. Señale, para cada afirmación, la frecuencia con la que ocurre en su trabajo.</p>
+      <div class="progress-bar"><div class="progress-track"><div class="progress-fill" id="prog-intral"></div></div><div class="progress-label" id="proglabel-intral"></div></div>
+      <div id="items-intral"></div>
+      <div class="navbtns"><button class="btn ghost" onclick="goTo(0)">← Atrás</button><button class="btn" onclick="tryAdvance(1,2)">Continuar →</button></div>
+    </section>
+
+    <section class="panel" id="panel-intralaboral-b">
+      <h2 class="pantitle">Cuestionario Intralaboral — Forma B</h2>
+      <p class="pandesc">97 ítems (auxiliares, operarios y cargos afines). Señale, para cada afirmación, la frecuencia con la que ocurre en su trabajo.</p>
+      <div class="progress-bar"><div class="progress-track"><div class="progress-fill" id="prog-intralB"></div></div><div class="progress-label" id="proglabel-intralB"></div></div>
+      <div id="items-intral-b"></div>
+      <div class="navbtns"><button class="btn ghost" onclick="goTo(0)">← Atrás</button><button class="btn" onclick="tryAdvance(1,2)">Continuar →</button></div>
+    </section>
+
+    <section class="panel" id="panel-extralaboral">
+      <h2 class="pantitle">Cuestionario Extralaboral</h2>
+      <p class="pandesc">31 ítems sobre condiciones fuera del trabajo.</p>
+      <div class="progress-bar"><div class="progress-track"><div class="progress-fill" id="prog-extral"></div></div><div class="progress-label" id="proglabel-extral"></div></div>
+      <div id="items-extral"></div>
+      <div class="navbtns"><button class="btn ghost" onclick="goTo(1)">← Atrás</button><button class="btn" onclick="tryAdvance(2,3)">Continuar →</button></div>
+    </section>
+
+    <section class="panel" id="panel-estres">
+      <h2 class="pantitle">Cuestionario para la Evaluación del Estrés</h2>
+      <p class="pandesc">31 ítems. Señale la frecuencia de cada malestar en los últimos tres meses.</p>
+      <div class="progress-bar"><div class="progress-track"><div class="progress-fill" id="prog-estres"></div></div><div class="progress-label" id="proglabel-estres"></div></div>
+      <div id="items-estres"></div>
+      <div class="navbtns"><button class="btn ghost" onclick="goTo(2)">← Atrás</button><button class="btn" onclick="tryAdvance(3,4)">Finalizar →</button></div>
+    </section>
+
+    <section class="panel" id="panel-resultados">
+      <h2 class="pantitle">Finalizar y enviar</h2>
+      <p class="pandesc">Ha completado los tres cuestionarios. Al guardar, sus respuestas quedan registradas de forma confidencial para que el administrador del proceso realice la calificación. Usted no verá su puntaje en esta pantalla.</p>
+      <div class="card">
+        <div class="grid2" style="font-size:13.5px;margin-bottom:6px;" id="finalizar-ficha"></div>
+      </div>
+      <div class="card" id="finalizar-card">
+        <button class="btn" id="btn-guardar" onclick="guardarRespuestas()">Guardar respuestas →</button>
+        <div id="finalizar-msg" style="margin-top:14px;font-size:13.5px;"></div>
+      </div>
+      <div class="toolbar">
+        <button class="btn ghost" onclick="goTo(3)">← Volver al cuestionario de estrés</button>
+      </div>
+      <footer class="note">
+        Herramienta de apoyo generada a partir del archivo suministrado. La aplicación, calificación e interpretación de esta batería debe estar a cargo de un profesional con licencia vigente en psicología con posgrado en salud ocupacional, conforme a la Resolución 2646 de 2008. Los resultados individuales son confidenciales y solo podrán ser consultados por el administrador autorizado del cuestionario.
+      </footer>
+    </section>
+
+  </main>
+</div>
+
+<div id="admin-overlay">
+  <div class="admin-box">
+    <button class="btn ghost closebtn" onclick="closeAdmin()">Cerrar ✕</button>
+    <div id="admin-login">
+      <h2 class="pantitle">Acceso administrador</h2>
+      <p class="pandesc">Ingrese la contraseña del administrador para consultar los cuestionarios diligenciados y sus puntajes.</p>
+      <label class="field" style="max-width:280px;"><span class="lbl">Contraseña</span><input type="password" id="admin-pass" onkeydown="if(event.key==='Enter')checkAdminPass()"></label>
+      <button class="btn" onclick="checkAdminPass()">Entrar</button>
+      <div id="admin-login-error" style="color:var(--muyalto);font-size:12.5px;margin-top:10px;"></div>
+    </div>
+    <div id="admin-panel" style="display:none;">
+      <h2 class="pantitle">Panel del administrador</h2>
+      <p class="pandesc">Cada vez que una persona presiona "Guardar respuestas", el sistema envía automáticamente un correo con el archivo <code>.json</code> de esa respuesta al buzón configurado del administrador. Descargue esos adjuntos desde su correo y cárguelos aquí (uno o varios a la vez) para verlos y calificarlos en este panel.</p>
+      <div class="card" style="margin-bottom:18px;">
+        <label class="field" style="max-width:420px;"><span class="lbl">Cargar archivo(s) recibidos por correo (.json)</span>
+          <input type="file" id="admin-file-input" accept="application/json" multiple onchange="handleAdminFiles(this.files)">
+        </label>
+        <div id="admin-storage-msg" style="font-size:12px;color:#8a8271;"></div>
+      </div>
+      <div id="admin-list"></div>
+      <div id="admin-detail"></div>
+    </div>
+  </div>
+</div>
+
+<form name="frp-respuestas" hidden>
+  <input type="text" name="nombre" />
+  <input type="text" name="cc" />
+  <input type="text" name="cargo" />
+  <input type="text" name="empresa" />
+  <input type="text" name="fecha_aplicacion" />
+  <input type="text" name="nivel_cargo" />
+  <input type="text" name="guardado_en" />
+  <textarea name="respuestas_json"></textarea>
+  <input name="bot-field" />
+</form>
+
+<script id="app-data" type="application/json">{"mapping": {"intralDomains": [{"domain": "Liderazgo y relaciones sociales en el trabajo", "dimensiones": [{"name": "Características del liderazgo", "items": [63, 64, 65, 66, 67, 68, 69, 70, 71, 72, 73, 74, 75], "th": [3.8, 15.4, 30.8, 46.2]}, {"name": "Relaciones sociales en el trabajo", "items": [76, 77, 78, 79, 80, 81, 82, 83, 84, 85, 86, 87, 88, 89], "th": [5.4, 16.1, 25, 37.5]}, {"name": "Retroalimentación del desempeño", "items": [90, 91, 92, 93, 94], "th": [10, 25, 40, 55]}, {"name": "Relación con colaboradores (subordinados)", "items": [115, 116, 117, 118, 119, 120, 121, 122, 123], "th": [13.9, 25, 33.3, 47.2]}], "totalTh": [9.1, 17.7, 25.6, 34.8]}, {"domain": "Control sobre el trabajo", "dimensiones": [{"name": "Claridad de rol", "items": [53, 54, 55, 56, 57, 58, 59], "th": [0.9, 10.7, 21.4, 39.3]}, {"name": "Capacitación", "items": [60, 61, 62], "th": [0.9, 16.7, 33.3, 50]}, {"name": "Participación y manejo del cambio", "items": [48, 49, 50, 51], "th": [12.5, 25, 37.5, 50]}, {"name": "Oportunidades para el uso y desarrollo de habilidades y conocimientos", "items": [39, 40, 41, 42], "th": [0.9, 6.3, 18.8, 31.3]}, {"name": "Control y autonomía sobre el trabajo", "items": [44, 45, 46], "th": [8.3, 25, 41.7, 58.3]}], "totalTh": [10.7, 19, 29.8, 40.5]}, {"domain": "Demandas del trabajo", "dimensiones": [{"name": "Demandas ambientales y de esfuerzo físico", "items": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], "th": [14.6, 22.9, 31.3, 39.6]}, {"name": "Demandas emocionales", "items": [106, 107, 108, 109, 110, 111, 112, 113, 114], "th": [16.7, 25, 33.3, 47.2]}, {"name": "Demandas cuantitativas", "items": [13, 14, 15, 32, 43, 47], "th": [25, 33.3, 45.8, 54.2]}, {"name": "Influencia del trabajo sobre el entorno extralaboral", "items": [35, 36, 37, 38], "th": [18.8, 31.3, 43.8, 50]}, {"name": "Exigencias de responsabilidad del cargo", "items": [19, 22, 23, 24, 25, 26], "th": [37.5, 54.2, 66.7, 79.2]}, {"name": "Demandas de carga mental", "items": [16, 17, 18, 20, 21], "th": [60, 70, 80, 90]}, {"name": "Consistencia del rol", "items": [27, 28, 29, 30, 52], "th": [15, 25, 35, 45]}, {"name": "Demandas de la jornada de trabajo", "items": [31, 33, 34], "th": [8.3, 25, 33.3, 50]}], "totalTh": [28.5, 35, 41.5, 47.5]}, {"domain": "Recompensas", "dimensiones": [{"name": "Recompensas derivadas de la pertenencia a la organización y del trabajo que se realiza", "items": [95, 102, 103, 104, 105], "th": [0.9, 5, 10, 20]}, {"name": "Reconocimiento y compensación", "items": [96, 97, 98, 99, 100, 101], "th": [4.2, 16.7, 25, 37.5]}], "totalTh": [4.5, 11.4, 20.5, 29.5]}], "intralGrandTh": [7.8, 12.6, 17.7, 25], "extralDims": [{"name": "Tiempo fuera del trabajo", "items": [14, 15, 16, 17], "th": [6.3, 25, 37.5, 50]}, {"name": "Relaciones familiares", "items": [21, 24, 26], "th": [8.3, 25, 33.3, 50]}, {"name": "Comunicación y relaciones interpersonales", "items": [18, 19, 20, 21, 23], "th": [5, 15, 25, 50]}, {"name": "Situación económica del grupo familiar", "items": [29, 30, 31], "th": [16.7, 25, 41.7, 50]}, {"name": "Características de la vivienda y su entorno", "items": [5, 6, 7, 8, 9, 10, 11, 12, 13], "th": [5.6, 11.1, 16.7, 25]}, {"name": "Influencia del entorno extralaboral sobre el trabajo", "items": [24, 26, 28], "th": [0.9, 16.7, 25, 50]}, {"name": "Desplazamiento vivienda-trabajo-vivienda", "items": [1, 2, 3, 4], "th": [0.9, 12.5, 25, 50]}], "extralTotalTh": [12.9, 17.7, 24.2, 50], "intralReversed": [1, 2, 3, 7, 8, 10, 11, 13, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 33, 35, 36, 37, 38, 52, 80, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123], "extralReversed": [2, 3, 6, 24, 26, 28, 30, 31], "estresGroups": {"A": [1, 2, 3, 9, 13, 14, 15, 23, 24], "B": [4, 5, 6, 10, 11, 16, 17, 18, 19, 25, 26, 27, 28], "C": [7, 8, 12, 20, 21, 22, 29, 30, 31]}, "estresDomains": [{"name": "Síntomas fisiológicos", "items": [1, 2, 3, 4, 5, 6, 7, 8], "factor": 4}, {"name": "Síntomas de comportamiento social", "items": [9, 10, 11, 12], "factor": 3}, {"name": "Síntomas intelectuales y laborales", "items": [13, 14, 15, 16, 17, 18, 19, 20, 21, 22], "factor": 2}, {"name": "Síntomas psicoemocionales", "items": [23, 24, 25, 26, 27, 28, 29, 30, 31], "factor": 1}], "estresBaremos": {"jefes": {"label": "Jefes, profesionales y técnicos", "th": [7.8, 12.6, 17.7, 25.0]}, "auxiliares": {"label": "Auxiliares y operarios", "th": [6.5, 11.8, 17.0, 23.4]}}}, "intralItems": {"1": "El ruido en el lugar donde trabajo es molesto", "2": "En el lugar donde trabajo hace mucho frío", "3": "En el lugar donde trabajo hace mucho calor", "4": "El aire en el lugar donde trabajo es fresco y agradable", "5": "La luz del sitio donde trabajo es agradable", "6": "El espacio donde trabajo es cómodo", "7": "En mi trabajo me preocupa estar expuesto a sustancias químicas que afecten mi salud", "8": "Mi trabajo me exige hacer mucho esfuerzo físico", "9": "Los equipos o herramientas con los que trabajo son cómodos", "10": "En mi trabajo me preocupa estar expuesto a microbios, animales o plantas que afecten mi salud", "11": "Me preocupa accidentarme en mi trabajo", "12": "El lugar donde trabajo es limpio y ordenado", "13": "Por la cantidad de trabajo que tengo debo quedarme tiempo adicional", "14": "Me alcanza el tiempo de trabajo para tener al día mis deberes", "15": "Por la cantidad de trabajo que tengo debo trabajar sin parar", "16": "Mi trabajo me exige hacer mucho esfuerzo", "17": "Mi trabajo me exige estar muy concentrado", "18": "Mi trabajo me exige memorizar mucha información", "19": "En mi trabajo tengo que tomar decisiones difíciles muy rápido", "20": "Mi trabajo me exige atender a muchos asuntos al mismo tiempo", "21": "Mi trabajo requiere que me fije en pequeños detalles", "22": "En mi trabajo respondo por cosas de mucho valor", "23": "En mi trabajo respondo por dinero de la empresa", "24": "Como parte de mis funciones debo responder por la seguridad de otros", "25": "Respondo ante mi jefe por los resultados de toda mi área de trabajo", "26": "Mi trabajo me exige cuidar la salud de otras personas", "27": "En el trabajo me dan órdenes contradictorias", "28": "En mi trabajo me piden hacer cosas innecesarias", "29": "En mi trabajo se presentan situaciones en las que debo pasar por alto normas o procedimientos", "30": "En mi trabajo tengo que hacer cosas que se podrían hacer de una forma más práctica", "31": "Trabajo en horario de noche", "32": "En mi trabajo es posible tomar pausas para descansar", "33": "Mi trabajo me exige laborar en días de descanso, festivos o fines de semana", "34": "En mi trabajo puedo tomar fines de semana o días de descanso al mes", "35": "Cuando estoy en casa sigo pensando en el trabajo", "36": "Discuto con mi familia o amigos por causa de mi trabajo", "37": "Debo atender asuntos de trabajo cuando estoy en casa", "38": "Por mi trabajo el tiempo que paso con mi familia y amigos es muy poco", "39": "Mi trabajo me permite desarrollar mis habilidades", "40": "Mi trabajo me permite aplicar mis conocimientos", "41": "Mi trabajo me permite aprender nuevas cosas", "42": "Me asignan el trabajo teniendo en cuenta mis capacidades", "43": "Puedo tomar pausas cuando las necesito", "44": "Puedo decidir cuánto trabajo hago en el día", "45": "Puedo decidir la velocidad a la que trabajo", "46": "Puedo cambiar el orden de las actividades en mi trabajo", "47": "Puedo parar un momento mi trabajo para atender algún asunto personal", "48": "Los cambios en mi trabajo han sido beneficiosos", "49": "Me explican claramente los cambios que ocurren en mi trabajo", "50": "Puedo dar sugerencias sobre los cambios que ocurren en mi trabajo", "51": "Cuando se presentan cambios en mi trabajo se tienen en cuenta mis ideas y sugerencias", "52": "Los cambios que se presentan en mi trabajo dificultan mi labor", "53": "Me informan con claridad cuáles son mis funciones", "54": "Me informan cuáles son las decisiones que puedo tomar en mi trabajo", "55": "Me explican claramente los resultados que debo lograr en mi trabajo", "56": "Me explican claramente el efecto de mi trabajo en la empresa", "57": "Me explican claramente los objetivos de mi trabajo", "58": "Me informan claramente quién me puede orientar para hacer mi trabajo", "59": "Me informan claramente con quién puedo resolver los asuntos de trabajo", "60": "La empresa me permite asistir a capacitaciones relacionadas con mi trabajo", "61": "Recibo capacitación útil para hacer mi trabajo", "62": "Recibo capacitación que me ayuda a hacer mi trabajo", "63": "Mi jefe me da instrucciones claras", "64": "Mi jefe me ayuda a sentirme bien en el trabajo", "65": "Mi jefe tiene en cuenta mis puntos de vista", "66": "Mi jefe me anima para hacer mejor mi trabajo", "67": "Mi jefe distribuye las tareas de forma que me facilita el trabajo", "68": "Mi jefe comunica a tiempo la información relacionada con el trabajo", "69": "La orientación que me da mi jefe me ayuda a hacer mejor el trabajo", "70": "Mi jefe me ayuda a progresar en mi trabajo", "71": "Mi jefe me ayuda a sentirme bien en mi trabajo", "72": "Mi jefe ayuda a solucionar los problemas que se presentan en el trabajo", "73": "Siento que puedo confiar en mi trabajo", "74": "Mi jefe me escucha cuando tengo problemas en el trabajo", "75": "Mi jefe me brinda su apoyo cuando lo necesito", "76": "Me agrada el ambiente de mi grupo de trabajo", "77": "En mi grupo de trabajo me tratan de forma respetuosa", "78": "Siento que puedo confiar en mis compañeros de trabajo", "79": "Me siento a gusto con mis compañeros de trabajo", "80": "En mi grupo de trabajo algunas personas me maltratan", "81": "Entre compañeros solucionamos los problemas de forma respetuosa", "82": "Hay integración en mi grupo de trabajo", "83": "Mi grupo de trabajo es muy unido", "84": "Las personas en mi trabajo me hacen sentir parte del grupo", "85": "Cuando tenemos que realizar trabajo de grupo los compañeros colaboran", "86": "Es fácil ponerse de acuerdo con el grupo para hacer el trabajo", "87": "Mis compañeros de trabajo me ayudan cuando tengo dificultades", "88": "En mi trabajo las personas nos apoyamos unos a otros", "89": "Algunos compañeros de trabajo me escuchan cuando tengo problemas", "90": "Me informan sobre lo que hago bien en mi trabajo", "91": "Me informan sobre lo que debo mejorar en mi trabajo", "92": "La información que recibo sobre mi rendimiento en el trabajo es clara", "93": "La forma como evalúan mi trabajo en la empresa me ayuda a mejorar", "94": "Me informan a tiempo sobre lo que debo mejorar en el trabajo", "95": "En la empresa confían en mi trabajo", "96": "En la empresa me pagan a tiempo mi trabajo", "97": "El pago que recibo es el que me ofreció la empresa", "98": "El pago que recibo es el que me merezco por el trabajo que realizo", "99": "En mi trabajo tengo posibilidades de progresar", "100": "Las personas que hacen bien el trabajo pueden progresar en la empresa", "101": "La empresa se preocupa por el bienestar de los trabajadores", "102": "Mi trabajo en la empresa es estable", "103": "El trabajo que hago me hace sentir bien", "104": "Siento orgullo de trabajar en esta empresa", "105": "Hablo bien de la empresa con otras personas", "106": "Atiendo clientes o usuarios muy enojados", "107": "Atiendo clientes o usuarios muy preocupados", "108": "Atiendo clientes o usuarios muy tristes", "109": "Atiendo clientes o usuarios muy enojados", "110": "Mi trabajo exige atender personas muy necesitadas de ayuda", "111": "Atiendo clientes o usuarios que me maltratan", "112": "Para hacer mi trabajo debo demostrar sentimientos distintos a los míos", "113": "Mi trabajo me exige atender situaciones de violencia", "114": "Mi trabajo me exige atender situaciones muy tristes o dolorosas", "115": "Tengo colaboradores que comunican tarde los asuntos de trabajo", "116": "Tengo colaboradores que tienen comportamientos irrespetuosos", "117": "Tengo colaboradores que dificultan la organización en el trabajo", "118": "Tengo colaboradores que guardan silencio cuando les piden opiniones", "119": "Tengo colaboradores que dificultan el logro de los resultados de trabajo", "120": "Tengo colaboradores que expresan de forma irrespetuosa sus desacuerdos", "121": "Tengo colaboradores que cooperan poco cuando se necesita", "122": "Tengo colaboradores que me preocupan por su desempeño", "123": "Tengo colaboradores que ignoran las sugerencias para mejorar su trabajo"}, "extralItems": {"1": "Es fácil transportarme entre mi casa y el trabajo", "2": "Tengo que tomar varios medios de transporte para llegar a mi lugar de trabajo", "3": "Paso mucho tiempo viajando de ida y regreso al trabajo", "4": "Me transporto cómodamente entre mi casa y el trabajo", "5": "La zona donde vivo es segura", "6": "En la zona donde vivo se presentan hurtos y mucha delincuencia", "7": "Desde donde vivo me es fácil llegar al centro médico donde me atienden", "8": "Cerca a mi vivienda las vías están en buenas condiciones", "9": "Cerca a mi vivienda encuentro fácilmente transporte", "10": "Las condiciones de mi vivienda son buenas", "11": "En mi vivienda hay servicios de agua y luz", "12": "Las condiciones de mi vivienda me permiten descansar cuando lo requiero", "13": "Las condiciones de mi vivienda me permiten sentirme cómodo", "14": "Me queda tiempo para actividades de recreación", "15": "Fuera del trabajo tengo tiempo suficiente para descansar", "16": "Tengo tiempo para atender mis asuntos personales y del hogar", "17": "Tengo tiempo para compartir con mi familia o amigos", "18": "Tengo buena comunicación con las personas cercanas", "19": "Las relaciones con mis amigos son buenas", "20": "Converso con personas cercanas sobre diferentes temas", "21": "Mis amigos están dispuestos a escucharme cuando tengo problemas", "22": "Cuento con el apoyo de mi familiar cuando tengo problemas", "23": "Puedo hablar con personas cercanas sobre las cosas que me pasan", "24": "Mis problemas personales o familiares afectan mi trabajo", "25": "La relación con mi familia cercana es cordial", "26": "Mis problemas personales o familiares me quitan la energía que necesito para trabajar", "27": "Los problemas con mis familiares los resolvemos de manera amistosa", "28": "Mis problemas personales o familiares afectan mis relaciones en el trabajo", "29": "El dinero que ganamos en el hogar alcanza para cubrir los gastos básicos", "30": "Tengo otros compromisos económicos que afectan mucho el presupuesto familiar", "31": "En mi hogar tenemos deudas difíciles de pagar"}, "estresItems": {"1": "Dolores en el cuello y espalda o tensión muscular", "2": "Problemas gastrointestinales, úlcera péptica, acidez, problemas digestivos o del colon", "3": "Problemas respiratorios", "4": "Dolor de cabeza", "5": "Trastornos del sueño como somnolencia durante el día o desvelo en la noche", "6": "Palpitaciones en el pecho o problemas cardíacos", "7": "Cambios fuertes del apetito", "8": "Problemas relacionados con la función de los órganos genitales (impotencia, frigidez)", "9": "Dificultad en las relaciones familiares", "10": "Dificultad para permanecer quieto o dificultad para iniciar actividades", "11": "Dificultad en las relaciones con otras personas", "12": "Sensación de aislamiento y desinterés", "13": "Sentimiento de sobrecarga de trabajo", "14": "Dificultad para concentrarse, olvidos frecuentes", "15": "Aumento en el número de accidentes de trabajo", "16": "Sentimiento de frustración, de no haber hecho lo que se quería en la vida", "17": "Cansancio, tedio o desgano", "18": "Disminución del rendimiento en el trabajo o poca creatividad", "19": "Deseo de no asistir al trabajo", "20": "Bajo compromiso o poco interés con lo que se hace", "21": "Dificultad para tomar decisiones", "22": "Deseo de cambiar de empleo", "23": "Sentimiento de soledad y miedo", "24": "Sentimiento de irritabilidad, actitudes y pensamientos negativos", "25": "Sentimiento de angustia, preocupación o tristeza", "26": "Consumo de drogas para aliviar la tensión o los nervios", "27": "Sentimiento de que \"no vale nada\", o \"no sirve para nada\"", "28": "Consumo de bebidas alcohólicas o café o cigarrillo", "29": "Sentimiento de que está perdiendo la razón", "30": "Comportamientos rígidos, obstinación o terquedad", "31": "Sensación de no poder manejar los problemas de la vida"}, "intralBItems": {"1": "El ruido en el lugar donde trabajo es molesto", "2": "En el lugar donde trabajo hace mucho frío", "3": "En el lugar donde trabajo hace mucho calor", "4": "El aire en el lugar donde trabajo es fresco y agradable", "5": "La luz del sitio donde trabajo es agradable", "6": "El espacio donde trabajo es cómodo", "7": "En mi trabajo me preocupa estar expuesto a sustancias químicas que afecten mi salud", "8": "Mi trabajo me exige hacer mucho esfuerzo físico", "9": "Los equipos o herramientas con los que trabajo son cómodos", "10": "En mi trabajo me preocupa estar expuesto a microbios, animales o plantas que afecten mi salud", "11": "Me preocupa accidentarme en mi trabajo", "12": "El lugar donde trabajo es limpio y ordenado", "13": "Por la cantidad de trabajo que tengo debo quedarme tiempo adicional", "14": "Me alcanza el tiempo de trabajo para tener al día mis deberes", "15": "Por la cantidad de trabajo que tengo debo trabajar sin parar", "16": "Mi trabajo me exige hacer mucho esfuerzo mental", "17": "Mi trabajo me exige estar muy concentrado", "18": "Mi trabajo me exige memorizar mucha información", "19": "En mi trabajo tengo que hacer cálculos matemáticos", "20": "Mi trabajo requiere que me fije en pequeños detalles", "21": "Trabajo en horario de noche", "22": "En mi trabajo es posible tomar pausas para descansar", "23": "Mi trabajo me exige laborar en días de descanso, festivos o fines de semana", "24": "En mi trabajo puedo tomar fines de semana o días de descanso al mes", "25": "Cuando estoy en casa sigo pensando en el trabajo", "26": "Discuto con mi familia o amigos por causa de mi trabajo", "27": "Debo atender asuntos de trabajo cuando estoy en casa", "28": "Por mi trabajo el tiempo que paso con mi familia y amigos es muy poco", "29": "En mi trabajo puedo hacer cosas nuevas", "30": "Mi trabajo me permite desarrollar mis habilidades", "31": "Mi trabajo me permite aplicar mis conocimientos", "32": "Mi trabajo me permite aprender nuevas cosas", "33": "Puedo tomar pausas cuando las necesito", "34": "Puedo decidir cuánto trabajo hago en el día", "35": "Puedo decidir la velocidad a la que trabajo", "36": "Puedo cambiar el orden de las actividades en mi trabajo", "37": "Puedo parar un momento mi trabajo para atender algún asunto personal", "38": "Me explican claramente los cambios que ocurren en mi trabajo", "39": "Puedo dar sugerencias sobre los cambios que ocurren en mi trabajo", "40": "Cuando se presentan cambios en mi trabajo se tienen en cuenta mis ideas y sugerencias", "41": "Me informan con claridad cuáles son mis funciones", "42": "Me informan cuáles son las decisiones que puedo tomar en mi trabajo", "43": "Me explican claramente los resultados que debo lograr en mi trabajo", "44": "Me explican claramente los objetivos de mi trabajo", "45": "Me informan claramente con quien puedo resolver los asuntos de trabajo", "46": "La empresa me permite asistir a capacitaciones relacionadas con mi trabajo", "47": "Recibo capacitación útil para hacer mi trabajo", "48": "Recibo capacitación que me ayuda a hacer mejor mi trabajo", "49": "Mi jefe ayuda a organizar mejor el trabajo", "50": "Mi jefe tiene en cuenta mis puntos de vista y opiniones", "51": "Mi jefe me anima para hacer mejor mi trabajo", "52": "Mi jefe distribuye las tareas de forma que me facilita el trabajo", "53": "Mi jefe me comunica a tiempo la información relacionada con el trabajo", "54": "La orientación que me da mi jefe me ayuda a hacer mejor el trabajo", "55": "Mi jefe me ayuda a progresar en el trabajo", "56": "Mi jefe me ayuda a sentirme bien en el trabajo", "57": "Mi jefe ayuda a solucionar los problemas que se presentan en el trabajo", "58": "Mi jefe me trata con respeto", "59": "Siento que puedo confiar en mi jefe", "60": "Mi jefe me escucha cuando tengo problemas de trabajo", "61": "Mi jefe me brinda su apoyo cuando lo necesito", "62": "Me agrada el ambiente de mi grupo de trabajo", "63": "En mi grupo de trabajo me tratan de forma respetuosa", "64": "Siento que puedo confiar en mis compañeros de trabajo", "65": "Me siento a gusto con mis compañeros de trabajo", "66": "En mi grupo de trabajo algunas personas me maltratan", "67": "Entre compañeros solucionamos los problemas de forma respetuosa", "68": "Mi grupo de trabajo es muy unido", "69": "Cuando tenemos que realizar trabajo de grupo los compañeros colaboran", "70": "Es fácil poner de acuerdo al grupo para hacer el trabajo", "71": "Mis compañeros de trabajo me ayudan cuando tengo dificultades", "72": "En mi trabajo las personas nos apoyamos unos a otros", "73": "Algunos compañeros de trabajo me escuchan cuando tengo problemas", "74": "Me informan sobre lo que hago bien en mi trabajo", "75": "Me informan sobre lo que debo mejorar en mi trabajo", "76": "La información que recibo sobre mi rendimiento en el trabajo es clara", "77": "La forma como evalúan mi trabajo en la empresa me ayuda a mejorar", "78": "Me informan a tiempo sobre lo que debo mejorar en el trabajo", "79": "En la empresa me pagan a tiempo mi salario", "80": "El pago que recibo es el que me ofreció la empresa", "81": "El pago que recibo es el que merezco por el trabajo que realizo", "82": "En mi trabajo tengo posibilidades de progresar", "83": "Las personas que hacen bien el trabajo pueden progresar en la empresa", "84": "La empresa se preocupa por el bienestar de los trabajadores", "85": "Mi trabajo en la empresa es estable", "86": "El trabajo que hago me hace sentir bien", "87": "Siento orgullo de trabajar en esta empresa", "88": "Hablo bien de la empresa con otras personas", "89": "Atiendo clientes o usuarios muy enojados", "90": "Atiendo clientes o usuarios muy preocupados", "91": "Atiendo clientes o usuarios muy tristes", "92": "Mi trabajo me exige atender personas muy enfermas", "93": "Mi trabajo me exige atender personas muy necesitadas de ayuda", "94": "Atiendo clientes o usuarios que me maltratan", "95": "Mi trabajo me exige atender situaciones de violencia", "96": "Mi trabajo me exige atender situaciones muy tristes o dolorosas", "97": "Puedo expresar tristeza o enojo frente a las personas que atiendo"}}</script>
+<script>
+const DATA = JSON.parse(document.getElementById('app-data').textContent);
+const M = DATA.mapping;
+
+const STEP_NAMES = ["Ficha de datos","Intralaboral","Extralaboral","Estrés","Finalizar"];
+const ADMIN_PASSWORD = "CEMARAUCA2026"; // Cambie esta contraseña por la que desee usar
+const PANEL_IDS = ["panel-ficha","panel-intralaboral","panel-extralaboral","panel-estres","panel-resultados"];
+let current = 0;
+
+// answers: {intral:{1:score,...}, intralB:{...}, extral:{...}, estres:{...}}
+const answers = {intral:{}, intralB:{}, extral:{}, estres:{}};
+
+// Determina si, según el nivel de cargo elegido en la ficha, corresponde la Forma B (auxiliares/operarios)
+// o la Forma A (jefatura, profesionales y técnicos).
+function usaFormaB(){
+  const sel = document.getElementById('f-nivel');
+  return !!sel && sel.value === 'auxiliares';
+}
+
+const LIKERT5 = ["Siempre","Casi siempre","Algunas veces","Casi nunca","Nunca"];
+const LIKERT4 = ["Siempre","Casi siempre","A veces","Nunca"];
+
+function buildNav(){
+  const nav = document.getElementById('stepnav');
+  nav.innerHTML = "";
+  STEP_NAMES.forEach((name,i)=>{
+    const b = document.createElement('button');
+    b.innerHTML = '<span class="n">0'+(i+1)+'</span>'+name;
+    b.onclick = ()=>goTo(i);
+    if(i===current) b.classList.add('active');
+    nav.appendChild(b);
+  });
+}
+
+function goTo(i){
+  current = i;
+  const formaB = usaFormaB();
+  PANEL_IDS.forEach((id,idx)=>{
+    let active = idx===i;
+    if(idx===1) active = active && !formaB; // panel-intralaboral es Forma A
+    document.getElementById(id).classList.toggle('active', active);
+  });
+  document.getElementById('panel-intralaboral-b').classList.toggle('active', i===1 && formaB);
+  buildNav();
+  if(i===4) renderFinalizarPanel();
+  window.scrollTo({top:0,behavior:'instant'});
+}
+
+function tryAdvance(fromIdx, toIdx){
+  const missing = checkComplete(fromIdx);
+  if(missing.length){
+    alert('Faltan '+missing.length+' ítem(s) por responder. Se han resaltado.');
+    highlightMissing(fromIdx, missing);
+    document.getElementById(missing[0].rowId)?.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  goTo(toIdx);
+}
+
+function highlightMissing(fromIdx, missing){
+  const missSet = new Set(missing.map(m=>m.rowId));
+  document.querySelectorAll('.item-row').forEach(r=>r.classList.remove('missing'));
+  missing.forEach(m=>{
+    const el = document.getElementById(m.rowId);
+    if(el) el.classList.add('missing');
+  });
+}
+
+function checkComplete(idx){
+  let itemsObj, ansObj, prefix;
+  if(idx===1){
+    if(usaFormaB()){ itemsObj=DATA.intralBItems; ansObj=answers.intralB; prefix='intralB'; }
+    else { itemsObj=DATA.intralItems; ansObj=answers.intral; prefix='intral'; }
+  }
+  else if(idx===2){itemsObj=DATA.extralItems; ansObj=answers.extral; prefix='extral';}
+  else if(idx===3){itemsObj=DATA.estresItems; ansObj=answers.estres; prefix='estres';}
+  else return [];
+  const missing=[];
+  Object.keys(itemsObj).forEach(n=>{
+    if(ansObj[n]===undefined) missing.push({n, rowId:'row-'+prefix+'-'+n});
+  });
+  return missing;
+}
+
+/* ---------- Build item lists ---------- */
+
+// Colores por dominio (solo para referencia visual; no afecta la calificación).
+const DOMAIN_COLORS = ["var(--dom1)","var(--dom2)","var(--dom3)","var(--dom4)"];
+
+// Mapa número de ítem -> {domain, color}, construido a partir de M.intralDomains
+// (la calificación sigue usando M.intralDomains/dimensiones sin cambios).
+const INTRAL_ITEM_META = {};
+M.intralDomains.forEach((dom,i)=>{
+  const color = DOMAIN_COLORS[i % DOMAIN_COLORS.length];
+  dom.dimensiones.forEach(dim=>{
+    dim.items.forEach(n=>{
+      INTRAL_ITEM_META[n] = {domain:dom.domain, color};
+    });
+  });
+});
+
+function renderIntral(){
+  const container = document.getElementById('items-intral');
+  container.innerHTML='';
+  const reversed = new Set(M.intralReversed);
+  // Se muestran en orden numérico ascendente (1→123) para facilitar el diligenciamiento;
+  // el dominio de cada ítem se conserva como referencia visual (franja y etiqueta de color).
+  for(let n=1;n<=123;n++){
+    if(DATA.intralItems[n]===undefined) continue;
+    const meta = INTRAL_ITEM_META[n] || {domain:'', color:null};
+    container.appendChild(makeItemRow('intral', n, DATA.intralItems[n], LIKERT5, reversed.has(n), false, meta));
+  }
+  updateProgress('intral');
+}
+
+function renderExtral(){
+  const container = document.getElementById('items-extral');
+  container.innerHTML='';
+  const reversed = new Set(M.extralReversed);
+  for(let n=1;n<=31;n++){
+    container.appendChild(makeItemRow('extral', n, DATA.extralItems[n], LIKERT5, reversed.has(n)));
+  }
+  updateProgress('extral');
+}
+
+function renderIntralB(){
+  const container = document.getElementById('items-intral-b');
+  container.innerHTML='';
+  for(let n=1;n<=97;n++){
+    if(DATA.intralBItems[n]===undefined) continue;
+    container.appendChild(makeItemRow('intralB', n, DATA.intralBItems[n], LIKERT5, false, false));
+  }
+  updateProgress('intralB');
+}
+
+function renderEstres(){
+  const container = document.getElementById('items-estres');
+  container.innerHTML='';
+  for(let n=1;n<=31;n++){
+    container.appendChild(makeItemRow('estres', n, DATA.estresItems[n], LIKERT4, false, true));
+  }
+  updateProgress('estres');
+}
+
+function makeItemRow(prefix, n, text, options, reversed, isEstres, meta){
+  const row = document.createElement('div');
+  row.className='item-row';
+  row.id = 'row-'+prefix+'-'+n;
+  row.style.animationDelay = Math.min(n*8, 400)+'ms';
+  if(meta && meta.color) row.style.setProperty('--dom-color', meta.color);
+
+  const txt = document.createElement('div');
+  txt.className='item-text';
+  const domainTag = (meta && meta.domain) ? '<span class="item-domain-tag">'+esc(meta.domain)+'</span>' : '';
+  txt.innerHTML = domainTag+'<span class="item-num">'+n+'</span>'+text;
+  row.appendChild(txt);
+
+  const opts = document.createElement('div');
+  opts.className='opts';
+  options.forEach((label,idx)=>{
+    const o = document.createElement('div');
+    o.className='opt';
+    o.textContent = label;
+    o.onclick = ()=>{
+      let score;
+      if(isEstres){
+        score = scoreEstresOption(n, idx);
+      } else {
+        score = reversed ? (options.length-1-idx) : idx;
+      }
+      answers[prefix][n]=score;
+      opts.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));
+      o.classList.add('sel');
+      row.classList.remove('missing');
+      updateProgress(prefix);
+    };
+    opts.appendChild(o);
+  });
+  row.appendChild(opts);
+  return row;
+}
+
+function scoreEstresOption(n, idx){
+  // idx: 0=Siempre,1=Casi siempre,2=A veces,3=Nunca
+  let weights;
+  if(M.estresGroups.A.includes(n)) weights=[9,6,3,0];
+  else if(M.estresGroups.B.includes(n)) weights=[6,4,2,0];
+  else weights=[3,2,1,0];
+  return weights[idx];
+}
+
+function updateProgress(prefix){
+  let total, answered;
+  if(prefix==='intral'){ total=123; answered=Object.keys(answers.intral).length; }
+  else if(prefix==='intralB'){ total=97; answered=Object.keys(answers.intralB).length; }
+  else if(prefix==='extral'){ total=31; answered=Object.keys(answers.extral).length; }
+  else { total=31; answered=Object.keys(answers.estres).length; }
+  const pct = Math.round((answered/total)*100);
+  const fill = document.getElementById('prog-'+prefix);
+  const label = document.getElementById('proglabel-'+prefix);
+  if(fill) fill.style.width = pct+'%';
+  if(label) label.textContent = answered+' de '+total+' respondidos ('+pct+'%)';
+}
+
+/* ---------- Scoring ---------- */
+
+function classify(score, th){
+  if(score<=th[0]) return 'SIN RIESGO';
+  if(score<=th[1]) return 'BAJO';
+  if(score<=th[2]) return 'MEDIO';
+  if(score<=th[3]) return 'ALTO';
+  return 'MUY ALTO';
+}
+function tagClass(level){ return level.replace(' ','_'); }
+
+function sumItems(ansObj, items){
+  return items.reduce((s,n)=> s + (ansObj[n]||0), 0);
+}
+
+function computeIntral(ansIntral){
+  ansIntral = ansIntral || answers.intral;
+  const rows=[];
+  let grandBruto=0, grandMax=0;
+  M.intralDomains.forEach(dom=>{
+    let domBruto=0, domMax=0;
+    const dimRows=[];
+    dom.dimensiones.forEach(dim=>{
+      const bruto = sumItems(ansIntral, dim.items);
+      const max = dim.items.length*4;
+      const transf = Math.round((bruto/max)*1000)/10;
+      dimRows.push({name:dim.name, bruto, transf, nivel:classify(transf, dim.th)});
+      domBruto+=bruto; domMax+=max;
+    });
+    const domTransf = Math.round((domBruto/domMax)*1000)/10;
+    rows.push({domain:dom.domain, dims:dimRows, domBruto, domTransf, domNivel:classify(domTransf, dom.totalTh)});
+    grandBruto+=domBruto; grandMax+=domMax;
+  });
+  const grandTransf = Math.round((grandBruto/grandMax)*1000)/10;
+  return {rows, grandBruto, grandTransf, grandNivel:classify(grandTransf, M.intralGrandTh)};
+}
+
+function computeExtral(ansExtral){
+  ansExtral = ansExtral || answers.extral;
+  const rows=[];
+  M.extralDims.forEach(dim=>{
+    const bruto = sumItems(ansExtral, dim.items);
+    const max = dim.items.length*4;
+    const transf = Math.round((bruto/max)*1000)/10;
+    rows.push({name:dim.name, bruto, transf, nivel:classify(transf, dim.th)});
+  });
+  const totalBruto = sumItems(ansExtral, Array.from({length:31},(_,i)=>i+1));
+  const totalMax = 31*4;
+  const totalTransf = Math.round((totalBruto/totalMax)*1000)/10;
+  return {rows, totalBruto, totalTransf, totalNivel:classify(totalTransf, M.extralTotalTh)};
+}
+
+function computeEstres(nivelCargo, ansEstres){
+  ansEstres = ansEstres || answers.estres;
+  let brutoTotal=0;
+  const rows=[];
+  M.estresDomains.forEach(dom=>{
+    const sum = sumItems(ansEstres, dom.items);
+    const promedio = sum/dom.items.length;
+    const ponderado = promedio*dom.factor;
+    brutoTotal += ponderado;
+    rows.push({name:dom.name, promedio:Math.round(promedio*10)/10, factor:dom.factor, ponderado:Math.round(ponderado*10)/10});
+  });
+  const transf = Math.round((brutoTotal/61.16)*1000)/10;
+  const baremo = M.estresBaremos[nivelCargo] || M.estresBaremos.jefes;
+  const nivel = classify(transf, baremo.th);
+  return {rows, brutoTotal:Math.round(brutoTotal*10)/10, transf, nivel, baremoLabel:baremo.label};
+}
+
+/* ---------- Results rendering ---------- */
+
+function renderResultsInto(payload, body){
+  const ficha = payload.ficha || {};
+  const nivelCargo = ficha.nivelCargo || 'jefes';
+  const registroFormaB = nivelCargo === 'auxiliares';
+  const nombre = ficha.nombre || '(sin nombre)';
+  const cc = ficha.cc || '—';
+  const cargo = ficha.cargo || '—';
+  const empresa = ficha.empresa || '—';
+  const fecha = ficha.fecha || '—';
+
+  const intral = registroFormaB ? null : computeIntral(payload.respuestas.intral);
+  const extral = computeExtral(payload.respuestas.extral);
+  const estres = computeEstres(nivelCargo, payload.respuestas.estres);
+
+  let html = '';
+
+  html += '<div class="card" style="margin-bottom:26px;">';
+  html += '<div class="grid2" style="font-size:13.5px;">';
+  html += '<div><strong>Nombre:</strong> '+esc(nombre)+'</div>';
+  html += '<div><strong>Identificación:</strong> '+esc(cc)+'</div>';
+  html += '<div><strong>Cargo:</strong> '+esc(cargo)+'</div>';
+  html += '<div><strong>Empresa:</strong> '+esc(empresa)+'</div>';
+  html += '<div><strong>Fecha de aplicación:</strong> '+esc(fecha)+'</div>';
+  html += '</div></div>';
+
+  html += '<div class="summary-cards">';
+  if(!registroFormaB) html += summaryCard('Intralaboral (Forma A)', intral.grandTransf, intral.grandNivel);
+  html += summaryCard('Extralaboral', extral.totalTransf, extral.totalNivel);
+  html += summaryCard('Estrés', estres.transf, estres.nivel);
+  html += '</div>';
+
+  if(registroFormaB){
+    // Forma B: aún no hay tabla oficial de ítems por dimensión ni baremos cargados en este
+    // aplicativo, así que NO se fabrica un nivel de riesgo. Se muestra solo la completitud.
+    const statB = computeCompletitud(payload).find(s=>s.key==='intralB');
+    html += '<div class="res-block"><h3>Cuestionario Intralaboral — Forma B</h3>';
+    html += '<div class="card" style="border-left:4px solid var(--gold);margin-bottom:14px;font-size:13px;">';
+    html += 'La calificación automática por dominios y dimensiones de la Forma B no está disponible en este aplicativo '+
+            '(no se cuenta con la tabla oficial de asignación de ítems por dimensión ni con los baremos específicos de esta forma). '+
+            'A continuación se muestra únicamente el estado de completitud; la calificación debe realizarla el profesional responsable con el manual oficial.';
+    html += '</div>';
+    if(statB){
+      const cls = statFillClass(statB.pct);
+      html += '<div class="stat-block">';
+      html += '<div class="stat-head"><span class="stat-title">Respuestas Forma B</span><span class="stat-pct">'+statB.answered+' / '+statB.total+' · '+statB.pct+'%</span></div>';
+      html += '<div class="stat-track"><div class="stat-fill '+cls+'" style="width:'+Math.min(100,statB.pct)+'%;"></div></div>';
+      if(statB.missing.length===0){
+        html += '<div class="stat-complete-msg">✓ Cuestionario completo, sin preguntas pendientes.</div>';
+      } else {
+        html += '<div class="stat-missing"><b>'+statB.missing.length+'</b> pregunta(s) sin responder.</div>';
+      }
+      html += '</div>';
+    }
+    html += '</div>';
+  } else {
+    // Intralaboral Forma A
+    html += '<div class="res-block"><h3>Cuestionario Intralaboral — Forma A</h3>';
+    html += '<div class="rb-sub">Puntaje bruto total: '+intral.grandBruto+' · Puntaje transformado: '+intral.grandTransf+'</div>';
+    html += '<table class="res"><thead><tr><th>Dominio / Dimensión</th><th>Bruto</th><th>Transformado</th><th>Nivel de riesgo</th></tr></thead><tbody>';
+    intral.rows.forEach(dom=>{
+      dom.dims.forEach((d,i)=>{
+        html += '<tr><td>'+(i===0? '<strong>'+esc(dom.domain)+'</strong><br>':'') + esc(d.name)+'</td><td>'+d.bruto+'</td><td>'+d.transf+'</td><td>'+tagHtml(d.nivel)+'</td></tr>';
+      });
+      html += '<tr class="domain-total"><td>Total dominio: '+esc(dom.domain)+'</td><td>'+dom.domBruto+'</td><td>'+dom.domTransf+'</td><td>'+tagHtml(dom.domNivel)+'</td></tr>';
+    });
+    html += '<tr class="grand"><td>TOTAL GENERAL INTRALABORAL</td><td>'+intral.grandBruto+'</td><td>'+intral.grandTransf+'</td><td>'+tagHtml(intral.grandNivel)+'</td></tr>';
+    html += '</tbody></table></div>';
+  }
+
+  // Extralaboral
+  html += '<div class="res-block"><h3>Cuestionario Extralaboral</h3>';
+  html += '<div class="rb-sub">Puntaje bruto total: '+extral.totalBruto+' · Puntaje transformado: '+extral.totalTransf+'</div>';
+  html += '<table class="res"><thead><tr><th>Dimensión</th><th>Bruto</th><th>Transformado</th><th>Nivel de riesgo</th></tr></thead><tbody>';
+  extral.rows.forEach(d=>{
+    html += '<tr><td>'+esc(d.name)+'</td><td>'+d.bruto+'</td><td>'+d.transf+'</td><td>'+tagHtml(d.nivel)+'</td></tr>';
+  });
+  html += '<tr class="grand"><td>TOTAL GENERAL EXTRALABORAL</td><td>'+extral.totalBruto+'</td><td>'+extral.totalTransf+'</td><td>'+tagHtml(extral.totalNivel)+'</td></tr>';
+  html += '</tbody></table></div>';
+
+  // Estres
+  html += '<div class="res-block"><h3>Cuestionario para la Evaluación del Estrés</h3>';
+  html += '<div class="rb-sub">Baremo aplicado: '+esc(estres.baremoLabel)+' · Puntaje bruto total: '+estres.brutoTotal+' · Puntaje transformado: '+estres.transf+'</div>';
+  html += '<table class="res"><thead><tr><th>Categoría de síntomas</th><th>Promedio</th><th>Factor</th><th>Ponderado</th></tr></thead><tbody>';
+  estres.rows.forEach(d=>{
+    html += '<tr><td>'+esc(d.name)+'</td><td>'+d.promedio+'</td><td>×'+d.factor+'</td><td>'+d.ponderado+'</td></tr>';
+  });
+  html += '<tr class="grand"><td colspan="3">NIVEL DE ESTRÉS</td><td>'+tagHtml(estres.nivel)+'</td></tr>';
+  html += '</tbody></table></div>';
+
+  body.innerHTML = html;
+}
+
+const NIVEL_COLOR = {
+  'SIN RIESGO':'var(--sin)', 'BAJO':'var(--bajo)', 'MEDIO':'var(--medio)',
+  'ALTO':'var(--alto)', 'MUY ALTO':'var(--muyalto)'
+};
+
+function summaryCard(title, score, nivel){
+  const pct = Math.max(0, Math.min(100, score));
+  const color = NIVEL_COLOR[nivel] || 'var(--teal)';
+  const ring = 'conic-gradient('+color+' '+(pct*3.6)+'deg, var(--line) 0deg)';
+  return '<div class="sumcard">'+
+    '<div style="display:flex;align-items:center;gap:16px;">'+
+      '<div style="flex:none;width:64px;height:64px;border-radius:50%;background:'+ring+';display:flex;align-items:center;justify-content:center;">'+
+        '<div style="width:48px;height:48px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-family:var(--serif);font-size:15px;color:'+color+';font-weight:700;">'+score+'</div>'+
+      '</div>'+
+      '<div><div class="k">'+esc(title)+'</div>'+tagHtml(nivel)+'</div>'+
+    '</div>'+
+  '</div>';
+}
+
+function tagHtml(level){
+  return '<span class="tag '+tagClass(level)+'">'+level+'</span>';
+}
+
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function buildFicha(){
+  return {
+    nombre:document.getElementById('f-nombre').value,
+    cc:document.getElementById('f-cc').value,
+    sexo:document.getElementById('f-sexo').value,
+    cargo:document.getElementById('f-cargo').value,
+    empresa:document.getElementById('f-empresa').value,
+    fecha:document.getElementById('f-fecha').value,
+    nivelCargo: document.getElementById('f-nivel').value || 'jefes'
+  };
+}
+
+/* ---------- Panel de finalización (participante) — nunca muestra puntajes ---------- */
+
+function renderFinalizarPanel(){
+  const ficha = buildFicha();
+  const el = document.getElementById('finalizar-ficha');
+  el.innerHTML =
+    '<div><strong>Nombre:</strong> '+esc(ficha.nombre||'—')+'</div>'+
+    '<div><strong>Identificación:</strong> '+esc(ficha.cc||'—')+'</div>'+
+    '<div><strong>Cargo:</strong> '+esc(ficha.cargo||'—')+'</div>'+
+    '<div><strong>Empresa:</strong> '+esc(ficha.empresa||'—')+'</div>'+
+    '<div><strong>Fecha de aplicación:</strong> '+esc(ficha.fecha||'—')+'</div>';
+  document.getElementById('btn-guardar').disabled = false;
+  document.getElementById('btn-guardar').textContent = 'Guardar respuestas →';
+  document.getElementById('finalizar-msg').innerHTML = '';
+}
+
+function descargarRespaldoLocal(ficha, payload){
+  const blob = new Blob([JSON.stringify(payload)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const nombreArchivo = 'respuesta_frp_' + (ficha.cc || 'sin_cc').replace(/[^a-zA-Z0-9_-]/g,'') + '.json';
+  a.href = url; a.download = nombreArchivo;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+  return nombreArchivo;
+}
+
+function claveRegistro(ficha, guardadoEn){
+  const ccLimpia = (ficha.cc || 'sin_cc').replace(/[^a-zA-Z0-9_-]/g,'');
+  return 'frp:' + ccLimpia + ':' + guardadoEn;
+}
+
+async function guardarRespuestas(){
+  const btn = document.getElementById('btn-guardar');
+  const msg = document.getElementById('finalizar-msg');
+  const ficha = buildFicha();
+  const guardadoEn = new Date().toISOString();
+  const payload = { ficha, respuestas: answers, guardadoEn };
+
+  btn.disabled = true;
+  btn.textContent = 'Guardando…';
+
+  try{
+    const resp = await fetch('/.netlify/functions/guardar-respuesta', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    if(!resp.ok) throw new Error('fallo al enviar al servidor');
+    btn.textContent = 'Guardado ✓';
+    msg.innerHTML = '<strong>✓ Respuestas guardadas correctamente.</strong> Gracias por completar el cuestionario. '+
+      'El administrador del proceso realizará la calificación; usted no tiene acceso al puntaje desde esta pantalla.';
+  }catch(e){
+    // Respaldo: si el envío automático falla (sin conexión, función caída, etc.), se descarga localmente para enviar de forma manual.
+    const nombreArchivo = descargarRespaldoLocal(ficha, payload);
+    btn.disabled = false;
+    btn.textContent = 'Guardar respuestas →';
+    msg.innerHTML = '<span style="color:var(--muyalto);">No se pudo enviar automáticamente.</span> Como respaldo se descargó el archivo <code>'+esc(nombreArchivo)+'</code>: por favor envíelo al administrador manualmente (puede cargarlo en el panel de administrador).';
+  }
+}
+
+/* ---------- Panel de administrador (protegido por contraseña) ---------- */
+
+function openAdmin(){
+  document.getElementById('admin-overlay').style.display = 'block';
+  document.getElementById('admin-login').style.display = 'block';
+  document.getElementById('admin-panel').style.display = 'none';
+  document.getElementById('admin-pass').value = '';
+  document.getElementById('admin-login-error').textContent = '';
+  setTimeout(()=>document.getElementById('admin-pass').focus(), 50);
+}
+function closeAdmin(){
+  document.getElementById('admin-overlay').style.display = 'none';
+}
+function checkAdminPass(){
+  const val = document.getElementById('admin-pass').value;
+  if(val === ADMIN_PASSWORD){
+    document.getElementById('admin-login').style.display = 'none';
+    document.getElementById('admin-panel').style.display = 'block';
+    document.getElementById('admin-detail').innerHTML = '';
+    mostrarMensajeInicialAdmin();
+  } else {
+    document.getElementById('admin-login-error').textContent = 'Contraseña incorrecta.';
+  }
+}
+
+let adminItemsMap = {};
+
+function mostrarMensajeInicialAdmin(){
+  const statusEl = document.getElementById('admin-storage-msg');
+  if(statusEl) statusEl.textContent = 'Cargue aquí los archivos .json que ha recibido por correo para verlos y calificarlos.';
+  renderAdminList();
+}
+
+async function handleAdminFiles(fileList){
+  const files = Array.from(fileList || []);
+  let errores = 0;
+  for(const f of files){
+    try{
+      const text = await f.text();
+      const payload = JSON.parse(text);
+      if(!payload || !payload.ficha || !payload.respuestas) throw new Error('formato inválido');
+      const clave = (payload.ficha.cc || 'sincc') + '_' + (payload.guardadoEn || f.name);
+      adminItemsMap[clave] = payload;
+    }catch(e){ errores++; }
+  }
+  renderAdminList();
+  if(errores){
+    const listEl = document.getElementById('admin-list');
+    listEl.insertAdjacentHTML('afterbegin', '<p style="font-size:12.5px;color:var(--muyalto);">'+errores+' archivo(s) no se pudieron leer (formato no válido).</p>');
+  }
+  document.getElementById('admin-file-input').value = '';
+}
+
+function renderAdminList(){
+  const listEl = document.getElementById('admin-list');
+  const payloads = Object.values(adminItemsMap).sort((a,b)=> (b.guardadoEn||'').localeCompare(a.guardadoEn||''));
+  window._adminItems = payloads.map(payload=>({payload}));
+  if(!payloads.length){
+    listEl.innerHTML = '<p style="font-size:13px;">Aún no ha cargado ningún archivo de respuestas.</p>';
+    return;
+  }
+  let html = '<table class="res"><thead><tr><th>Nombre</th><th>Identificación</th><th>Cargo</th><th>Empresa</th><th>Guardado</th><th>Completitud</th><th></th></tr></thead><tbody>';
+  window._adminItems.forEach((it,i)=>{
+    const f = it.payload.ficha || {};
+    const cuando = it.payload.guardadoEn ? new Date(it.payload.guardadoEn).toLocaleString() : '—';
+    const stats = computeCompletitud(it.payload);
+    const resumenPct = stats.map(s=>s.label.charAt(0)+': '+s.pct+'%').join(' · ');
+    html += '<tr><td>'+esc(f.nombre||'—')+'</td><td>'+esc(f.cc||'—')+'</td><td>'+esc(f.cargo||'—')+'</td><td>'+esc(f.empresa||'—')+'</td><td>'+esc(cuando)+'</td>'+
+      '<td style="font-family:var(--mono);font-size:10.5px;white-space:nowrap;">'+esc(resumenPct)+'</td>'+
+      '<td style="display:flex;gap:6px;flex-wrap:wrap;">'+
+        '<button class="btn ghost" style="padding:6px 10px;font-size:10.5px;" onclick="showAdminDetail('+i+')">Ver puntaje</button>'+
+        '<button class="btn ghost" style="padding:6px 10px;font-size:10.5px;" onclick="showAdminStats('+i+')">Ver completitud</button>'+
+      '</td></tr>';
+  });
+  html += '</tbody></table>';
+  listEl.innerHTML = html;
+}
+
+/* ---------- Estadística de completitud por persona ---------- */
+
+function computeCompletitud(payload){
+  const respuestas = (payload && payload.respuestas) || {};
+  const nivelCargo = (payload.ficha && payload.ficha.nivelCargo) || 'jefes';
+  const registroFormaB = nivelCargo === 'auxiliares';
+  const forms = [
+    registroFormaB
+      ? {key:'intralB', label:'Intralaboral (Forma B)', items: DATA.intralBItems}
+      : {key:'intral',  label:'Intralaboral (Forma A)', items: DATA.intralItems},
+    {key:'extral', label:'Extralaboral', items: DATA.extralItems},
+    {key:'estres', label:'Estrés',       items: DATA.estresItems}
+  ];
+  return forms.map(f=>{
+    const ans = respuestas[f.key] || {};
+    const nums = Object.keys(f.items).map(Number).sort((a,b)=>a-b);
+    const missing = nums.filter(n=> ans[n]===undefined || ans[n]===null);
+    const total = nums.length;
+    const answered = total - missing.length;
+    const pct = total ? Math.round((answered/total)*1000)/10 : 0;
+    return {key:f.key, label:f.label, total, answered, pct, missing, items:f.items};
+  });
+}
+
+function statFillClass(pct){
+  if(pct>=100) return 'ok';
+  if(pct>=80) return 'warn';
+  return 'bad';
+}
+
+function renderCompletitudInto(payload, body){
+  const ficha = payload.ficha || {};
+  const stats = computeCompletitud(payload);
+
+  let html = '';
+  html += '<div class="card" style="margin-bottom:22px;">';
+  html += '<div class="grid2" style="font-size:13.5px;">';
+  html += '<div><strong>Nombre:</strong> '+esc(ficha.nombre||'—')+'</div>';
+  html += '<div><strong>Identificación:</strong> '+esc(ficha.cc||'—')+'</div>';
+  html += '<div><strong>Cargo:</strong> '+esc(ficha.cargo||'—')+'</div>';
+  html += '<div><strong>Empresa:</strong> '+esc(ficha.empresa||'—')+'</div>';
+  html += '<div><strong>Fecha de aplicación:</strong> '+esc(ficha.fecha||'—')+'</div>';
+  html += '</div></div>';
+
+  html += '<h3 style="margin-bottom:14px;">Estadística de completitud del formulario</h3>';
+
+  stats.forEach(s=>{
+    const cls = statFillClass(s.pct);
+    html += '<div class="stat-block">';
+    html += '<div class="stat-head"><span class="stat-title">'+esc(s.label)+'</span><span class="stat-pct">'+s.answered+' / '+s.total+' · '+s.pct+'%</span></div>';
+    html += '<div class="stat-track"><div class="stat-fill '+cls+'" style="width:'+Math.min(100,s.pct)+'%;"></div></div>';
+    if(s.missing.length===0){
+      html += '<div class="stat-complete-msg">✓ Cuestionario completo, sin preguntas pendientes.</div>';
+    } else {
+      html += '<div class="stat-missing"><b>'+s.missing.length+'</b> pregunta(s) sin responder:';
+      html += '<div class="chips">';
+      s.missing.forEach(n=>{
+        const texto = s.items[n] || '';
+        html += '<span class="chip"><b>#'+n+'</b> '+esc(texto.length>46 ? texto.slice(0,46)+'…' : texto)+'</span>';
+      });
+      html += '</div></div>';
+    }
+    html += '</div>';
+  });
+
+  body.innerHTML = html;
+}
+
+function showAdminStats(i){
+  const it = (window._adminItems||[])[i];
+  const detailEl = document.getElementById('admin-detail');
+  if(!it){ detailEl.innerHTML=''; return; }
+  detailEl.innerHTML = '<div class="toolbar"><button class="btn ghost" onclick="window.print()">Imprimir / Guardar PDF</button></div><div id="admin-detail-body"></div>';
+  renderCompletitudInto(it.payload, document.getElementById('admin-detail-body'));
+  detailEl.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function showAdminDetail(i){
+  const it = (window._adminItems||[])[i];
+  const detailEl = document.getElementById('admin-detail');
+  if(!it){ detailEl.innerHTML=''; return; }
+  detailEl.innerHTML = '<div class="toolbar"><button class="btn ghost" onclick="window.print()">Imprimir / Guardar PDF</button><button class="btn ghost" onclick="downloadAdminJSON('+i+')">Descargar (.json)</button></div><div id="admin-detail-body"></div>';
+  renderResultsInto(it.payload, document.getElementById('admin-detail-body'));
+  detailEl.scrollIntoView({behavior:'smooth', block:'start'});
+}
+
+function downloadAdminJSON(i){
+  const it = (window._adminItems||[])[i];
+  if(!it) return;
+  const payload = {
+    ficha: it.payload.ficha,
+    respuestas: it.payload.respuestas,
+    guardadoEn: it.payload.guardadoEn,
+    resultados: {
+      intralaboral: computeIntral(it.payload.respuestas.intral),
+      extralaboral: computeExtral(it.payload.respuestas.extral),
+      estres: computeEstres(it.payload.ficha.nivelCargo, it.payload.respuestas.estres)
+    }
+  };
+  const blob = new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href=url; a.download='resultados_frp_'+(it.payload.ficha.cc||'sin_cc')+'.json';
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------- Init ---------- */
+buildNav();
+renderIntral();
+renderIntralB();
+renderExtral();
+renderEstres();
+goTo(0);
+</script>
+</body>
+</html>
